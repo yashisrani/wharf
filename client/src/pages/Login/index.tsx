@@ -28,6 +28,19 @@ import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from 'react-query';
 
+interface ApiError {
+  error: string;
+}
+
+interface LoginResponse {
+  token: string;
+}
+
+interface ForgotResponse {
+  username: string;
+  password: string;
+}
+
 const Login = () => {
   const [showPassword, setShowPassword] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
@@ -40,7 +53,7 @@ const Login = () => {
   const [forgotPass, setForgotPass] = useState<boolean>(false);
   const navigate = useNavigate();
 
-  const findIsAdmin = async () => {
+  const findIsAdmin = async (): Promise<void> => {
     try {
       const res = await isAdminAvailable();
       if (res.data.username) {
@@ -55,27 +68,33 @@ const Login = () => {
 
   useQuery('isAdmin', findIsAdmin, { retry: false });
 
-  const adminReg = async () => {
+  const adminReg = async (): Promise<void> => {
     try {
       await registerAdmin(username, password, initPassword);
       navigate('/');
     } catch (e: any) {
-      throw e.response ? e.response.data : { error: 'Request failed' };
+      const error: ApiError = e.response
+        ? e.response.data
+        : { error: 'Request failed' };
+      throw error;
     }
   };
 
-  const logIn = async () => {
+  const logIn = async (): Promise<LoginResponse> => {
     try {
       const res = await login(username, password);
       localStorage.setItem('token', res.data.token);
       navigate('/');
       return res.data;
     } catch (e: any) {
-      throw e.response ? e.response.data : { error: 'Request failed' };
+      const error: ApiError = e.response
+        ? e.response.data
+        : { error: 'Request failed' };
+      throw error;
     }
   };
 
-  const SubmitHandler = async () => {
+  const SubmitHandler = async (): Promise<void> => {
     if (username === '' || password === '') {
       toast.error('Please fill all fields');
       return;
@@ -107,28 +126,31 @@ const Login = () => {
       toast.promise(adminReg(), {
         loading: 'Registering',
         success: 'Admin Registered',
-        error: data => `${data.error}`,
+        error: (error: ApiError) => `${error.error}`,
       });
       setIsAdmin(true);
     } else {
       toast.promise(logIn(), {
         loading: 'Logging in...',
         success: 'Login successful',
-        error: data => `${data.error}`,
+        error: (error: ApiError) => `${error.error}`,
       });
     }
   };
 
-  const forgotFunc = async () => {
+  const forgotFunc = async (): Promise<ForgotResponse> => {
     try {
       const res = await forgotAdmin(initPassword);
       return res.data;
     } catch (e: any) {
-      throw e.response ? e.response.data : { error: 'Request failed' };
+      const error: ApiError = e.response
+        ? e.response.data
+        : { error: 'Request failed' };
+      throw error;
     }
   };
 
-  const ForgotHandler = async () => {
+  const ForgotHandler = async (): Promise<void> => {
     if (initPassword === '') {
       toast.error('Please fill all fields');
       return;
@@ -136,12 +158,12 @@ const Login = () => {
 
     toast.promise(forgotFunc(), {
       loading: 'Loading...',
-      success: data => {
+      success: (data: ForgotResponse) => {
         setAdminPass(data.password);
         setAdminUname(data.username);
         return 'Username Password loaded';
       },
-      error: data => `${data.error}`,
+      error: (error: ApiError) => `${error.error}`,
     });
   };
 
